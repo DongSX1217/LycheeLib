@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  push:
+
+jobs:
+  build_app:
+    runs-on: windows-latest
+    permissions:
+      contents: write  # 确保有权限上传到Release
+    name: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      
+      - name: List files
+        run: ls
+      
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        run: pwsh -ep bypass ./tools/publish.ps1
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./LycheeLib/cipx/*.cipx  # 明确指定文件扩展名
+      
+      - name: Upload APP to release
+        uses: ncipollo/release-action@v1
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          artifacts: "./LycheeLib/cipx/*.cipx"  # 修正文件扩展名
+          token: ${{ secrets.GITHUB_TOKEN }}  # 显式传递Token
+          draft: true
